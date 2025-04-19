@@ -1,5 +1,6 @@
 const fs = require('fs')
 const AuthException = require('../exceptions/AuthException')
+const { checkUserVoluntario, checkUserConsumidor } = require('./common.service')
 
 function formatUser(user, fields) {
     const formatedUser = {}
@@ -23,24 +24,22 @@ function createUserConsumidor(user) {
 }
 
 function checkUser(formatedUser) {
-    const fileData = fs.readFileSync('src/storage/consumidores.json')
-    let jsonData = []
     try {
-        jsonData = JSON.parse(fileData)
-    } catch (err) {
-        jsonData = []
-    }
-    for (user of jsonData) {
-        if (formatedUser['email'] == user['email']) {
-            throw new AuthException('Erro ao cadastrar', 'Este email já está em uso.', 400)
+        jsonData = checkUserConsumidor(formatedUser)
+        checkUserVoluntario(formatedUser)
+        for (user of jsonData) {
+            if (formatedUser['email'] == user['email']) {
+                throw new AuthException('Erro ao cadastrar', 'Este email já está em uso.', 400)
+            }
         }
+        jsonData.push(formatedUser)
+        fs.writeFile('src/storage/consumidores.json', JSON.stringify(jsonData), err => {
+            if (err) console.error(err)
+            console.log('Arquivo atualizado com sucesso!')
+        })
+    } catch (err) {
+        throw new AuthException(err.title, err.message, err.code)
     }
-    jsonData.push(formatedUser)
-    fs.writeFile('src/storage/consumidores.json', JSON.stringify(jsonData), err => {
-        if (err) console.error(err)
-        console.log('Arquivo atualizado com sucesso!')
-    })
-
 }
 
 module.exports = {
